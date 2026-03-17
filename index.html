@@ -1,11 +1,3 @@
-
-This version:
-- Uses **live camera scanning** with `html5-qrcode` (real-time preview, no need to take a separate photo for barcodes)
-- Keeps optional photo upload for inner/carton labels (base64 preview, but **not yet sent** to the backend — see note at bottom)
-- Sends data via `fetch` POST with `mode: 'no-cors'` (most reliable for Apps Script in 2026 when called from external origin like GitHub Pages)
-- Has validation, status feedback, and mobile-friendly styling
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -59,6 +51,7 @@ This version:
       display: flex;
       gap: 10px;
       align-items: center;
+      flex-wrap: wrap;
     }
     button {
       background: #3f51b5;
@@ -73,6 +66,11 @@ This version:
     button.scanning {
       background: #f44336;
     }
+    button.fallback {
+      background: #555;
+      font-size: 0.85rem;
+      padding: 8px 12px;
+    }
     #scanner-container {
       margin: 16px 0;
       text-align: center;
@@ -86,15 +84,17 @@ This version:
       overflow: hidden;
     }
     #status {
-      margin: 12px 0;
-      padding: 10px;
+      margin: 16px 0;
+      padding: 12px;
       border-radius: 8px;
       font-weight: bold;
       text-align: center;
-      min-height: 24px;
+      min-height: 48px;
+      line-height: 1.4;
     }
     #status.success { background: #2e7d32; color: white; }
     #status.error   { background: #c62828; color: white; }
+    #status.warning { background: #f57c00; color: white; }
     
     .photo-btn {
       background: #455a64;
@@ -122,11 +122,16 @@ This version:
       margin-top: 8px;
       display: none;
     }
-    .hint {
+    .hint, .perm-hint {
       color: #aaa;
       font-size: 0.85rem;
       margin-top: 4px;
       line-height: 1.4;
+    }
+    .perm-hint {
+      color: #ffeb3b;
+      font-weight: bold;
+      margin: 12px 0;
     }
   </style>
 </head>
@@ -153,26 +158,34 @@ This version:
   <div class="card">
     <label>Inner Barcode / QR</label>
     <div class="scan-row">
-      <input type="text" id="inner" placeholder="Inner barcode" readonly>
-      <button id="btn-inner" onclick="startScanner('inner')">SCAN INNER</button>
+      <input type="text" id="inner" placeholder="Inner barcode" readonly style="flex:1;">
+      <button id="btn-inner" onclick="startScanner('inner')">SCAN LIVE</button>
+      <button class="fallback" onclick="triggerFileScan('inner')">Take Photo</button>
     </div>
 
     <label>Outer Barcode / QR</label>
     <div class="scan-row">
-      <input type="text" id="outer" placeholder="Outer barcode" readonly>
-      <button id="btn-outer" onclick="startScanner('outer')">SCAN OUTER</button>
+      <input type="text" id="outer" placeholder="Outer barcode" readonly style="flex:1;">
+      <button id="btn-outer" onclick="startScanner('outer')">SCAN LIVE</button>
+      <button class="fallback" onclick="triggerFileScan('outer')">Take Photo</button>
     </div>
 
     <div id="scanner-container" style="display:none;">
       <div id="reader"></div>
-      <button onclick="stopScanner()" style="margin-top:12px; background:#555;">× Close Scanner</button>
+      <button onclick="stopScanner()" style="margin-top:12px; background:#555; width:100%;">× Close Scanner</button>
     </div>
 
     <p class="hint">
-      Point camera at barcode/QR code.<br>
-      Scanning starts when you tap SCAN INNER or SCAN OUTER.
+      Preferred: Use "SCAN LIVE" – point camera at barcode/QR code.
+    </p>
+    <p class="perm-hint">
+      First time? Browser will ask to allow camera → tap <strong>Allow</strong>.<br>
+      No popup? → Check browser settings → Camera → Allow for this site → reload page.
     </p>
   </div>
+
+  <!-- Hidden file input for fallback photo scanning -->
+  <input type="file" id="barcodeFile" accept="image/*" capture="camera" style="display:none" onchange="decodeFromFile(this)">
 
   <div class="card">
     <button class="photo-btn" onclick="document.getElementById('f1').click()">
@@ -200,7 +213,7 @@ This version:
   <script>
     let currentScanner = null;
     let activeField = null;
-    let images = { inner: "", carton: "" }; // base64 previews (not sent yet)
+    let images = { inner: "", carton: "" };
 
     const scannerContainer = document.getElementById('scanner-container');
     const statusDiv = document.getElementById('status');
@@ -208,8 +221,10 @@ This version:
     function showStatus(msg, type = 'info') {
       statusDiv.textContent = msg;
       statusDiv.className = type;
-      if (msg) statusDiv.style.display = 'block';
-      else statusDiv.style.display = 'none';
+      statusDiv.style.display = msg ? 'block' : 'none';
+      if (type !== 'info') {
+        setTimeout(() => { statusDiv.style.display = 'none'; }, 8000);
+      }
     }
 
     function startScanner(fieldId) {
@@ -217,39 +232,46 @@ This version:
 
       activeField = fieldId;
       scannerContainer.style.display = 'block';
-      showStatus("Starting camera... Allow access if prompted.", 'info');
+      showStatus("Attempting to open camera... Please allow permission", 'warning');
 
       const btn = document.getElementById(`btn-${fieldId}`);
       if (btn) btn.classList.add('scanning');
 
-      currentScanner = new Html5Qrcode("reader");
+      // Small delay helps some mobile browsers initialize properly
+      setTimeout(() => {
+        currentScanner = new Html5Qrcode("reader");
 
-      const config = {
-        fps: 10,
-        qrbox: { width: 280, height: 280 },
-        aspectRatio: 1.0,
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.ITF
-        ]
-      };
+        const config = {
+          fps: 10,
+          qrbox: { width: 280, height: 280 },
+          aspectRatio: 1.0,
+          rememberLastUsedCamera: true,
+          supportedScanTypes: [Html5QrcodeSupportedScanType.CAMERA]
+        };
 
-      currentScanner.start(
-        { facingMode: "environment" },
-        config,
-        (decodedText) => {
-          document.getElementById(activeField).value = decodedText.trim();
-          showStatus(`Scanned: ${decodedText}`, 'success');
+        currentScanner.start(
+          { facingMode: "environment" },
+          config,
+          (decodedText) => {
+            document.getElementById(activeField).value = decodedText.trim();
+            showStatus(`Scanned: ${decodedText}`, 'success');
+            stopScanner();
+          },
+          (err) => { /* silent */ }
+        ).catch(err => {
+          console.error("Camera start failed:", err.name, err.message, err);
+          let msg = "Camera could not start: " + (err.message || err);
+          if (err.name === "NotAllowedError") {
+            msg = "Camera permission denied. Go to browser settings → Camera → Allow this site → reload.";
+          } else if (err.name === "NotFoundError" || err.name === "NoCamerasError") {
+            msg = "No camera detected on this device.";
+          } else if (err.name === "NotReadableError") {
+            msg = "Camera in use by another app. Close other apps and try again.";
+          }
+          showStatus(msg, 'error');
           stopScanner();
-        },
-        (err) => { /* silent scan error */ }
-      ).catch(err => {
-        showStatus("Camera error: " + err, 'error');
-        stopScanner();
-      });
+        });
+      }, 300);
     }
 
     function stopScanner() {
@@ -263,15 +285,97 @@ This version:
       activeField = null;
     }
 
+    // Fallback: Take photo and decode
+    function triggerFileScan(fieldId) {
+      activeField = fieldId;
+      document.getElementById('barcodeFile').click();
+    }
+
+    function decodeFromFile(input) {
+      if (!input.files?.length) return;
+
+      showStatus("Decoding photo...", 'warning');
+
+      const file = input.files[0];
+      const scanner = new Html5Qrcode("status-div-hidden"); // dummy element
+
+      scanner.scanFile(file, true)
+        .then(decodedText => {
+          document.getElementById(activeField).value = decodedText.trim();
+          showStatus(`Decoded from photo: ${decodedText}`, 'success');
+        })
+        .catch(err => {
+          console.error("File decode failed:", err);
+          showStatus("Could not read barcode from photo. Try clearer image.", 'error');
+        })
+        .finally(() => {
+          input.value = "";
+        });
+    }
+
     function previewImage(input, previewId) {
       if (!input.files?.[0]) return;
       const reader = new FileReader();
       reader.onload = e => {
-        const img = document.getElementById(previewId);
-        img.src = e.target.result;
-        img.style.display = 'block';
-        // You can store base64 here if you want to send photos later:
-        // images[previewId.includes('1') ? 'inner' : 'carton'] = e.target.result;
+        document.getElementById(previewId).src = e.target.result;
+        document.getElementById(previewId).style.display = 'block';
       };
       reader.readAsDataURL(input.files[0]);
     }
+
+    async function submitData() {
+      const btn = document.querySelector('.submit-btn');
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+
+      const data = {
+        packedBy:  document.getElementById('packedBy').value.trim(),
+        checkerBy: document.getElementById('checkerBy').value.trim(),
+        cartonId:  document.getElementById('cartonId').value.trim(),
+        customer:  document.getElementById('customer').value.trim(),
+        inner:     document.getElementById('inner').value.trim(),
+        outer:     document.getElementById('outer').value.trim(),
+        qty:       document.getElementById('qty').value.trim(),
+        packedDate: new Date().toISOString().split('T')[0]
+      };
+
+      if (!data.inner || !data.outer) {
+        showStatus("Inner and Outer barcodes are required.", 'error');
+        btn.disabled = false;
+        btn.textContent = "SUBMIT PACKING DATA";
+        return;
+      }
+
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZUjFJDh3r7XyK977Iwnj4rt8a4QMexxICmXn0W9Nj7bMt150DigfHvgHEwxYW70Hg/exec";
+
+      try {
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          redirect: "follow",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        showStatus("Data saved successfully!", 'success');
+        setTimeout(() => location.reload(), 2200);
+      } catch (err) {
+        showStatus("Network error: " + err.message, 'error');
+        console.error("Submit failed:", err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "SUBMIT PACKING DATA";
+      }
+    }
+
+    // Close scanner when clicking outside
+    document.addEventListener('click', e => {
+      if (scannerContainer.style.display === 'block' &&
+          !scannerContainer.contains(e.target) &&
+          !e.target.closest('.scan-row button')) {
+        stopScanner();
+      }
+    });
+  </script>
+
+</body>
+</html>
