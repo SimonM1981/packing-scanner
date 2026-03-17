@@ -34,10 +34,16 @@
 
   <div class="card">
     <label>Packed By</label>
-    <input type="text" id="packedBy" placeholder="Your name / ID">
+    <div class="scan-row">
+      <input type="text" id="packedBy" placeholder="Your name / ID" style="flex:1;">
+      <button onclick="startScanner('packedBy')">SCAN</button>
+    </div>
 
     <label>Packing Checker By</label>
-    <input type="text" id="checkerBy" placeholder="Checker name / ID">
+    <div class="scan-row">
+      <input type="text" id="checkerBy" placeholder="Checker name / ID" style="flex:1;">
+      <button onclick="startScanner('checkerBy')">SCAN</button>
+    </div>
   </div>
 
   <div class="card">
@@ -45,7 +51,16 @@
     <input type="text" id="cartonId" placeholder="Carton ID">
 
     <label>Customer Name</label>
-    <input type="text" id="customer" placeholder="Customer name">
+    <div class="scan-row">
+      <input type="text" id="customer" placeholder="Customer name" style="flex:1;">
+      <button onclick="startScanner('customer')">SCAN</button>
+    </div>
+
+    <label>P/I No.</label>
+    <div class="scan-row">
+      <input type="text" id="pi" placeholder="P/I number" style="flex:1;">
+      <button onclick="startScanner('pi')">SCAN</button>
+    </div>
   </div>
 
   <div class="card">
@@ -66,7 +81,7 @@
       <button onclick="stopScanner()" style="margin-top:12px; background:#555; width:100%;">× Close Scanner</button>
     </div>
 
-    <p class="hint">Point camera at barcode/QR code.</p>
+    <p class="hint">Point camera at barcode/QR code. Works for both 1D barcodes and QR codes.</p>
     <p class="perm-hint">First time? Allow camera when prompted.<br>No popup? Reset permission in browser settings → reload in private tab.</p>
   </div>
 
@@ -92,7 +107,7 @@
   <script>
     let html5QrCode = null;
     let activeField = null;
-    let images = { imgInner: "", imgCarton: "" };  // base64 strings
+    let images = { imgInner: "", imgCarton: "" };
 
     const scannerContainer = document.getElementById('scanner-container');
     const statusDiv = document.getElementById('status');
@@ -144,13 +159,13 @@
       const reader = new FileReader();
       reader.onload = function(e) {
         const base64 = e.target.result;
-        images[dataKey] = base64;  // store full data URL (with prefix)
+        images[dataKey] = base64;
 
         const img = document.getElementById(previewId);
         img.src = base64;
         img.style.display = 'block';
 
-        showStatus("Photo captured & ready to submit", 'success');
+        showStatus("Photo ready", 'success');
       };
       reader.readAsDataURL(input.files[0]);
     }
@@ -165,17 +180,19 @@
         checkerBy: document.getElementById('checkerBy').value.trim(),
         cartonId: document.getElementById('cartonId').value.trim(),
         customer: document.getElementById('customer').value.trim(),
+        pi: document.getElementById('pi').value.trim(),           // ← new
         inner: document.getElementById('inner').value.trim(),
         outer: document.getElementById('outer').value.trim(),
         qty: document.getElementById('qty').value.trim(),
         packedDate: new Date().toISOString().split('T')[0],
-        imgInner: images.imgInner || "",     // base64 or empty
+        imgInner: images.imgInner || "",
         imgCarton: images.imgCarton || ""
       };
 
       if (!data.inner || !data.outer) {
         showStatus("Inner and Outer barcodes required.", 'error');
-        resetButton();
+        btn.disabled = false;
+        btn.textContent = "SUBMIT PACKING DATA";
         return;
       }
 
@@ -189,16 +206,12 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
         });
-        showStatus("Data & photos saved successfully!", 'success');
+        showStatus("Data & photos saved!", 'success');
         setTimeout(() => location.reload(), 2500);
       } catch (err) {
-        showStatus("Error sending data: " + err.message, 'error');
+        showStatus("Error: " + err.message, 'error');
         console.error(err);
       } finally {
-        resetButton();
-      }
-
-      function resetButton() {
         btn.disabled = false;
         btn.textContent = "SUBMIT PACKING DATA";
       }
