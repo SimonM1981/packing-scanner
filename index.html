@@ -5,25 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>MG Packing System - Scanner</title>
   
-  <!-- Use un-pinned version like your working project -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f0f0f;
-      color: #e0e0e0;
-      margin: 0;
-      padding: 16px;
-      min-height: 100vh;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #e0e0e0; margin: 0; padding: 16px; min-height: 100vh; }
     h1 { text-align: center; color: #90caf9; margin: 12px 0 24px; font-size: 1.6rem; }
     .card { background: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
     label { display: block; margin: 12px 0 6px; font-weight: 600; color: #90caf9; font-size: 0.95rem; }
-    input[type="text"], input[type="number"] {
-      width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px;
-      color: white; font-size: 16px; box-sizing: border-box;
-    }
+    input[type="text"], input[type="number"] { width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white; font-size: 16px; box-sizing: border-box; }
     .scan-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     button { background: #3f51b5; color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem; }
     button.scanning { background: #f44336; }
@@ -34,7 +23,7 @@
     #status.error   { background: #c62828; color: white; }
     .photo-btn { background: #455a64; width: 100%; padding: 16px; margin: 12px 0; font-size: 1.05rem; }
     .submit-btn { background: #2e7d32; width: 100%; padding: 20px; font-size: 1.2rem; margin-top: 24px; border: none; border-radius: 10px; color: white; font-weight: bold; }
-    .preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 10px; margin-top: 8px; display: none; }
+    .preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 10px; margin-top: 8px; display: none; border: 1px solid #555; }
     .hint { color: #aaa; font-size: 0.85rem; margin-top: 4px; line-height: 1.4; }
     .perm-hint { color: #ffeb3b; font-weight: bold; margin: 12px 0; }
   </style>
@@ -83,11 +72,11 @@
 
   <div class="card">
     <button class="photo-btn" onclick="document.getElementById('f1').click()">📸 PHOTO: Inner Box / Label</button>
-    <input type="file" id="f1" accept="image/*" capture="camera" style="display:none" onchange="previewImage(this, 'preview1')">
+    <input type="file" id="f1" accept="image/*" capture="camera" style="display:none" onchange="processPhoto(this, 'preview1', 'imgInner')">
     <img id="preview1" class="preview" alt="Inner preview">
 
     <button class="photo-btn" onclick="document.getElementById('f2').click()">📸 PHOTO: Carton / Label</button>
-    <input type="file" id="f2" accept="image/*" capture="camera" style="display:none" onchange="previewImage(this, 'preview2')">
+    <input type="file" id="f2" accept="image/*" capture="camera" style="display:none" onchange="processPhoto(this, 'preview2', 'imgCarton')">
     <img id="preview2" class="preview" alt="Carton preview">
   </div>
 
@@ -103,7 +92,7 @@
   <script>
     let html5QrCode = null;
     let activeField = null;
-    let images = { inner: "", carton: "" };
+    let images = { imgInner: "", imgCarton: "" };  // base64 strings
 
     const scannerContainer = document.getElementById('scanner-container');
     const statusDiv = document.getElementById('status');
@@ -120,9 +109,7 @@
       scannerContainer.style.display = 'block';
       showStatus("Starting camera... Allow if prompted", 'warning');
 
-      if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("reader");
-      }
+      if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
       try {
         if (html5QrCode.isScanning) await html5QrCode.stop();
@@ -137,8 +124,8 @@
           }
         );
       } catch (err) {
-        console.error("Scanner start failed:", err);
-        showStatus("Camera error: " + (err.message || "Permission / device issue"), 'error');
+        console.error("Scanner error:", err);
+        showStatus("Camera error: " + (err.message || "Check permission"), 'error');
         stopScanner();
       }
     }
@@ -151,12 +138,19 @@
       activeField = null;
     }
 
-    function previewImage(input, previewId) {
+    function processPhoto(input, previewId, dataKey) {
       if (!input.files?.[0]) return;
+
       const reader = new FileReader();
-      reader.onload = e => {
-        document.getElementById(previewId).src = e.target.result;
-        document.getElementById(previewId).style.display = 'block';
+      reader.onload = function(e) {
+        const base64 = e.target.result;
+        images[dataKey] = base64;  // store full data URL (with prefix)
+
+        const img = document.getElementById(previewId);
+        img.src = base64;
+        img.style.display = 'block';
+
+        showStatus("Photo captured & ready to submit", 'success');
       };
       reader.readAsDataURL(input.files[0]);
     }
@@ -174,13 +168,14 @@
         inner: document.getElementById('inner').value.trim(),
         outer: document.getElementById('outer').value.trim(),
         qty: document.getElementById('qty').value.trim(),
-        packedDate: new Date().toISOString().split('T')[0]
+        packedDate: new Date().toISOString().split('T')[0],
+        imgInner: images.imgInner || "",     // base64 or empty
+        imgCarton: images.imgCarton || ""
       };
 
       if (!data.inner || !data.outer) {
         showStatus("Inner and Outer barcodes required.", 'error');
-        btn.disabled = false;
-        btn.textContent = "SUBMIT PACKING DATA";
+        resetButton();
         return;
       }
 
@@ -194,11 +189,16 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
         });
-        showStatus("Saved!", 'success');
-        setTimeout(() => location.reload(), 2000);
+        showStatus("Data & photos saved successfully!", 'success');
+        setTimeout(() => location.reload(), 2500);
       } catch (err) {
-        showStatus("Error: " + err.message, 'error');
+        showStatus("Error sending data: " + err.message, 'error');
+        console.error(err);
       } finally {
+        resetButton();
+      }
+
+      function resetButton() {
         btn.disabled = false;
         btn.textContent = "SUBMIT PACKING DATA";
       }
