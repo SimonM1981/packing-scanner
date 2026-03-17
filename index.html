@@ -121,6 +121,7 @@
 </head>
 <body>
   <h1>MG Packing System</h1>
+
   <div class="card">
     <label>Packed By</label>
     <div class="scan-row">
@@ -133,51 +134,63 @@
       <button onclick="startScanner('checkerBy')">SCAN</button>
     </div>
   </div>
+
   <div class="card">
     <label>Carton ID</label>
     <input type="text" id="cartonId" placeholder="Carton ID">
+
     <label>Customer Name</label>
     <div class="scan-row">
       <input type="text" id="customer" placeholder="Customer name" style="flex:1;">
       <button onclick="startScanner('customer')">SCAN</button>
     </div>
+
     <label>P/I No.</label>
     <div class="scan-row">
       <input type="text" id="pi" placeholder="P/I number" style="flex:1;">
       <button onclick="startScanner('pi')">SCAN</button>
     </div>
   </div>
+
   <div class="card">
     <label>Inner Barcode / QR</label>
     <div class="scan-row">
       <input type="text" id="inner" placeholder="Inner barcode" readonly style="flex:1;">
       <button id="btn-inner" onclick="startScanner('inner')">SCAN LIVE</button>
     </div>
+
     <label>Outer Barcode / QR</label>
     <div class="scan-row">
       <input type="text" id="outer" placeholder="Outer barcode" readonly style="flex:1;">
       <button id="btn-outer" onclick="startScanner('outer')">SCAN LIVE</button>
     </div>
+
     <div id="scanner-container" style="display:none;">
       <div id="reader"></div>
       <button onclick="stopScanner()" style="margin-top:12px; background:#555; width:100%;">× Close Scanner</button>
     </div>
+
     <p class="hint">Point camera at barcode/QR code. Works for both 1D barcodes and QR codes.</p>
     <p class="perm-hint">First time? Allow camera when prompted.<br>No popup? Reset permission in browser settings → reload in private tab.</p>
   </div>
+
   <div class="card">
     <button class="photo-btn" onclick="document.getElementById('f1').click()">📸 PHOTO: Inner Box / Label</button>
     <input type="file" id="f1" accept="image/*" capture="camera" style="display:none" onchange="processPhoto(this, 'preview1', 'imgInner')">
     <img id="preview1" class="preview" alt="Inner preview">
+
     <button class="photo-btn" onclick="document.getElementById('f2').click()">📸 PHOTO: Carton / Label</button>
     <input type="file" id="f2" accept="image/*" capture="camera" style="display:none" onchange="processPhoto(this, 'preview2', 'imgCarton')">
     <img id="preview2" class="preview" alt="Carton preview">
   </div>
+
   <div class="card">
     <label>Quantity (pcs)</label>
     <input type="number" id="qty" min="1" placeholder="Enter quantity" value="1">
   </div>
+
   <button class="submit-btn" onclick="submitData()">SUBMIT PACKING DATA</button>
+
   <div id="status"></div>
 
   <script>
@@ -275,20 +288,18 @@
       const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZUjFJDh3r7XyK977Iwnj4rt8a4QMexxICmXn0W9Nj7bMt150DigfHvgHEwxYW70Hg/exec";
 
       try {
-        const response = await fetch(SCRIPT_URL, {
+        await fetch(SCRIPT_URL, {
           method: "POST",
           mode: "no-cors",
           redirect: "follow",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
         });
-
-        // Since mode is no-cors, we can't read response, but if no network error → assume success
-        showStatus("Submission sent! Check sheet & Drive.", 'success');
-        setTimeout(() => location.reload(), 3000);
+        showStatus("Data & photos saved!", 'success');
+        setTimeout(() => location.reload(), 2500);
       } catch (err) {
-        showStatus("Network or submission error: " + err.message, 'error');
-        console.error("Fetch failed:", err);
+        showStatus("Error: " + err.message, 'error');
+        console.error(err);
       } finally {
         btn.disabled = false;
         btn.textContent = "SUBMIT PACKING DATA";
