@@ -128,6 +128,7 @@
       <input type="text" id="packedBy" placeholder="Your name / ID" style="flex:1;">
       <button onclick="startScanner('packedBy')">SCAN</button>
     </div>
+
     <label>Packing Checker By</label>
     <div class="scan-row">
       <input type="text" id="checkerBy" placeholder="Checker name / ID" style="flex:1;">
@@ -285,7 +286,7 @@
         return;
       }
 
-      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZUjFJDh3r7XyK977Iwnj4rt8a4QMexxICmXn0W9Nj7bMt150DigfHvgHEwxYW70Hg/exec";
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzv30fSGjU3f7R91q3XZK6HFD3S10DC2t4KMiMCpyMi0rgkvlwpv9nKVNBYz_zjnnoa/exec";
 
       try {
         await fetch(SCRIPT_URL, {
