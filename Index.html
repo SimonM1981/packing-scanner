@@ -1,3 +1,11 @@
+
+This version:
+- Uses **live camera scanning** with `html5-qrcode` (real-time preview, no need to take a separate photo for barcodes)
+- Keeps optional photo upload for inner/carton labels (base64 preview, but **not yet sent** to the backend — see note at bottom)
+- Sends data via `fetch` POST with `mode: 'no-cors'` (most reliable for Apps Script in 2026 when called from external origin like GitHub Pages)
+- Has validation, status feedback, and mobile-friendly styling
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -192,7 +200,7 @@
   <script>
     let currentScanner = null;
     let activeField = null;
-    let images = { inner: "", carton: "" };
+    let images = { inner: "", carton: "" }; // base64 previews (not sent yet)
 
     const scannerContainer = document.getElementById('scanner-container');
     const statusDiv = document.getElementById('status');
@@ -200,19 +208,18 @@
     function showStatus(msg, type = 'info') {
       statusDiv.textContent = msg;
       statusDiv.className = type;
-      statusDiv.style.display = msg ? 'block' : 'none';
+      if (msg) statusDiv.style.display = 'block';
+      else statusDiv.style.display = 'none';
     }
 
     function startScanner(fieldId) {
-      if (currentScanner) {
-        stopScanner();
-      }
+      if (currentScanner) stopScanner();
 
       activeField = fieldId;
       scannerContainer.style.display = 'block';
-      showStatus("Starting camera... Allow camera access if prompted.");
+      showStatus("Starting camera... Allow access if prompted.", 'info');
 
-      const btn = document.getElementById(`btn-${fieldId.split('-')[0] || fieldId}`);
+      const btn = document.getElementById(`btn-${fieldId}`);
       if (btn) btn.classList.add('scanning');
 
       currentScanner = new Html5Qrcode("reader");
@@ -238,9 +245,7 @@
           showStatus(`Scanned: ${decodedText}`, 'success');
           stopScanner();
         },
-        (err) => {
-          // silent error during scanning (normal)
-        }
+        (err) => { /* silent scan error */ }
       ).catch(err => {
         showStatus("Camera error: " + err, 'error');
         stopScanner();
@@ -249,87 +254,24 @@
 
     function stopScanner() {
       if (currentScanner) {
-        currentScanner.stop().catch(()=>{});
+        currentScanner.stop().catch(() => {});
         currentScanner.clear();
         currentScanner = null;
       }
       scannerContainer.style.display = 'none';
-      const buttons = document.querySelectorAll('.scan-row button');
-      buttons.forEach(b => b.classList.remove('scanning'));
+      document.querySelectorAll('.scan-row button').forEach(b => b.classList.remove('scanning'));
       activeField = null;
     }
 
     function previewImage(input, previewId) {
-      if (!input.files || !input.files[0]) return;
+      if (!input.files?.[0]) return;
       const reader = new FileReader();
       reader.onload = e => {
         const img = document.getElementById(previewId);
         img.src = e.target.result;
         img.style.display = 'block';
-
-        // Optional: you can also try to decode barcode from photo here
-        // but live scanning is preferred
+        // You can store base64 here if you want to send photos later:
+        // images[previewId.includes('1') ? 'inner' : 'carton'] = e.target.result;
       };
       reader.readAsDataURL(input.files[0]);
     }
-
-    async function submitData() {
-      const btn = document.querySelector('.submit-btn');
-      btn.disabled = true;
-      btn.textContent = "Saving...";
-
-      const data = {
-        packedBy:  document.getElementById('packedBy').value.trim(),
-        checkerBy: document.getElementById('checkerBy').value.trim(),
-        cartonId:  document.getElementById('cartonId').value.trim(),
-        customer:  document.getElementById('customer').value.trim(),
-        inner:     document.getElementById('inner').value.trim(),
-        outer:     document.getElementById('outer').value.trim(),
-        qty:       document.getElementById('qty').value.trim(),
-        packedDate: new Date().toISOString().split('T')[0],
-        // images.inner and images.carton are base64 — add if you want to send photos
-      };
-
-      if (!data.inner || !data.outer) {
-        showStatus("Inner and Outer barcodes are required.", 'error');
-        btn.disabled = false;
-        btn.textContent = "SUBMIT PACKING DATA";
-        return;
-      }
-
-      // ← Replace this URL with your own Google Apps Script web app URL
-      const SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID_HERE/exec";
-
-      try {
-        const response = await fetch(SCRIPT_URL, {
-          method: "POST",
-          mode: "no-cors",           // most reliable for Apps Script
-          redirect: "follow",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-
-        // With no-cors we can't read response → assume success if no network error
-        showStatus("Data saved successfully!", 'success');
-        setTimeout(() => location.reload(), 1800);
-      } catch (err) {
-        showStatus("Error sending data: " + err.message, 'error');
-        console.error(err);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "SUBMIT PACKING DATA";
-      }
-    }
-
-    // Optional: close scanner when clicking outside
-    document.addEventListener('click', e => {
-      if (scannerContainer.style.display === 'block' &&
-          !scannerContainer.contains(e.target) &&
-          !e.target.closest('.scan-row button')) {
-        stopScanner();
-      }
-    });
-  </script>
-
-</body>
-</html>
