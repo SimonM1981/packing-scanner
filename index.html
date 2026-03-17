@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>MG Packing System - Scanner</title>
   
-  <!-- Try older version for better mobile stability in some cases -->
-  <script src="https://unpkg.com/html5-qrcode@2.2.0/html5-qrcode.min.js"></script>
+  <!-- Use un-pinned version like your working project -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   
   <style>
     body {
@@ -17,127 +17,26 @@
       padding: 16px;
       min-height: 100vh;
     }
-    h1 {
-      text-align: center;
-      color: #90caf9;
-      margin: 12px 0 24px;
-      font-size: 1.6rem;
+    h1 { text-align: center; color: #90caf9; margin: 12px 0 24px; font-size: 1.6rem; }
+    .card { background: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+    label { display: block; margin: 12px 0 6px; font-weight: 600; color: #90caf9; font-size: 0.95rem; }
+    input[type="text"], input[type="number"] {
+      width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px;
+      color: white; font-size: 16px; box-sizing: border-box;
     }
-    .card {
-      background: #1e1e1e;
-      border: 1px solid #333;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      margin: 12px 0 6px;
-      font-weight: 600;
-      color: #90caf9;
-      font-size: 0.95rem;
-    }
-    input[type="text"],
-    input[type="number"] {
-      width: 100%;
-      padding: 12px;
-      background: #2a2a2a;
-      border: 1px solid #444;
-      border-radius: 8px;
-      color: white;
-      font-size: 16px;
-      box-sizing: border-box;
-    }
-    .scan-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    button {
-      background: #3f51b5;
-      color: white;
-      border: none;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 0.95rem;
-    }
-    button.scanning {
-      background: #f44336;
-    }
-    button.fallback, button.retry {
-      background: #555;
-      font-size: 0.9rem;
-    }
-    #scanner-container {
-      margin: 16px 0;
-      text-align: center;
-    }
-    #reader {
-      width: 100%;
-      max-width: 500px;
-      margin: 0 auto 12px;
-      border: 3px solid #555;
-      border-radius: 12px;
-      overflow: hidden;
-      min-height: 300px;
-      background: #000;
-    }
-    #status {
-      margin: 16px 0;
-      padding: 14px;
-      border-radius: 10px;
-      font-weight: bold;
-      text-align: center;
-      min-height: 60px;
-      line-height: 1.4;
-      white-space: pre-wrap;
-    }
+    .scan-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    button { background: #3f51b5; color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem; }
+    button.scanning { background: #f44336; }
+    #scanner-container { margin: 16px 0; text-align: center; }
+    #reader { width: 100%; max-width: 480px; margin: 0 auto; border: 2px solid #444; border-radius: 10px; overflow: hidden; background: #000; }
+    #status { margin: 12px 0; padding: 10px; border-radius: 8px; font-weight: bold; text-align: center; min-height: 24px; }
     #status.success { background: #2e7d32; color: white; }
     #status.error   { background: #c62828; color: white; }
-    #status.warning { background: #f57c00; color: white; }
-    
-    .photo-btn {
-      background: #455a64;
-      width: 100%;
-      padding: 16px;
-      margin: 12px 0;
-      font-size: 1.05rem;
-    }
-    .submit-btn {
-      background: #2e7d32;
-      width: 100%;
-      padding: 20px;
-      font-size: 1.2rem;
-      margin-top: 24px;
-      border: none;
-      border-radius: 10px;
-      color: white;
-      font-weight: bold;
-    }
-    .preview {
-      width: 100%;
-      max-height: 160px;
-      object-fit: cover;
-      border-radius: 10px;
-      margin-top: 8px;
-      display: none;
-    }
-    .hint, .perm-hint {
-      color: #aaa;
-      font-size: 0.9rem;
-      margin: 8px 0;
-      line-height: 1.5;
-    }
-    .perm-hint {
-      color: #ffeb3b;
-      font-weight: bold;
-      padding: 8px;
-      background: rgba(255,235,59,0.15);
-      border-radius: 8px;
-    }
+    .photo-btn { background: #455a64; width: 100%; padding: 16px; margin: 12px 0; font-size: 1.05rem; }
+    .submit-btn { background: #2e7d32; width: 100%; padding: 20px; font-size: 1.2rem; margin-top: 24px; border: none; border-radius: 10px; color: white; font-weight: bold; }
+    .preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 10px; margin-top: 8px; display: none; }
+    .hint { color: #aaa; font-size: 0.85rem; margin-top: 4px; line-height: 1.4; }
+    .perm-hint { color: #ffeb3b; font-weight: bold; margin: 12px 0; }
   </style>
 </head>
 <body>
@@ -164,46 +63,30 @@
     <label>Inner Barcode / QR</label>
     <div class="scan-row">
       <input type="text" id="inner" placeholder="Inner barcode" readonly style="flex:1;">
-      <button id="btn-inner-live" onclick="startScanner('inner')">SCAN LIVE</button>
-      <button class="fallback" onclick="triggerFileScan('inner')">Take Photo</button>
+      <button id="btn-inner" onclick="startScanner('inner')">SCAN LIVE</button>
     </div>
 
     <label>Outer Barcode / QR</label>
     <div class="scan-row">
       <input type="text" id="outer" placeholder="Outer barcode" readonly style="flex:1;">
-      <button id="btn-outer-live" onclick="startScanner('outer')">SCAN LIVE</button>
-      <button class="fallback" onclick="triggerFileScan('outer')">Take Photo</button>
+      <button id="btn-outer" onclick="startScanner('outer')">SCAN LIVE</button>
     </div>
 
     <div id="scanner-container" style="display:none;">
       <div id="reader"></div>
-      <div style="display:flex; gap:10px; margin-top:12px;">
-        <button onclick="stopScanner()" style="flex:1; background:#555;">× Close Scanner</button>
-        <button class="retry" onclick="startScanner(activeField)" style="flex:1;">Retry Camera</button>
-      </div>
+      <button onclick="stopScanner()" style="margin-top:12px; background:#555; width:100%;">× Close Scanner</button>
     </div>
 
-    <p class="hint">
-      Best: Use SCAN LIVE — point at barcode/QR.
-    </p>
-    <p class="perm-hint">
-      First use: Browser asks → tap **Allow**.<br>
-      No popup / black screen? Reset camera permission in browser settings → reload in private tab.
-    </p>
+    <p class="hint">Point camera at barcode/QR code.</p>
+    <p class="perm-hint">First time? Allow camera when prompted.<br>No popup? Reset permission in browser settings → reload in private tab.</p>
   </div>
 
-  <input type="file" id="barcodeFile" accept="image/*" capture="camera" style="display:none" onchange="decodeFromFile(this)">
-
   <div class="card">
-    <button class="photo-btn" onclick="document.getElementById('f1').click()">
-      📸 PHOTO: Inner Box / Label
-    </button>
+    <button class="photo-btn" onclick="document.getElementById('f1').click()">📸 PHOTO: Inner Box / Label</button>
     <input type="file" id="f1" accept="image/*" capture="camera" style="display:none" onchange="previewImage(this, 'preview1')">
     <img id="preview1" class="preview" alt="Inner preview">
 
-    <button class="photo-btn" onclick="document.getElementById('f2').click()">
-      📸 PHOTO: Carton / Label
-    </button>
+    <button class="photo-btn" onclick="document.getElementById('f2').click()">📸 PHOTO: Carton / Label</button>
     <input type="file" id="f2" accept="image/*" capture="camera" style="display:none" onchange="previewImage(this, 'preview2')">
     <img id="preview2" class="preview" alt="Carton preview">
   </div>
@@ -218,7 +101,7 @@
   <div id="status"></div>
 
   <script>
-    let currentScanner = null;
+    let html5QrCode = null;
     let activeField = null;
     let images = { inner: "", carton: "" };
 
@@ -229,102 +112,51 @@
       statusDiv.textContent = msg;
       statusDiv.className = type;
       statusDiv.style.display = 'block';
-      // Warnings & errors stay longer
-      if (type === 'error' || type === 'warning') {
-        setTimeout(() => { if (statusDiv.textContent === msg) statusDiv.style.display = 'none'; }, 12000);
-      }
+      if (type !== 'info') setTimeout(() => statusDiv.style.display = 'none', 8000);
     }
 
-    function startScanner(fieldId) {
-      if (currentScanner) stopScanner();
-
+    async function startScanner(fieldId) {
       activeField = fieldId;
       scannerContainer.style.display = 'block';
-      document.getElementById('reader').innerHTML = ''; // clear previous
-      showStatus("Opening camera...\nAllow permission if asked.\n(Back camera preferred)", 'warning');
+      showStatus("Starting camera... Allow if prompted", 'warning');
 
-      const btn = document.getElementById(`btn-${fieldId}-live`);
-      if (btn) btn.classList.add('scanning');
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+      }
 
-      setTimeout(() => {
-        currentScanner = new Html5Qrcode("reader");
+      try {
+        if (html5QrCode.isScanning) await html5QrCode.stop();
 
-        const config = {
-          fps: 8,                    // lower fps sometimes helps stability
-          qrbox: { width: 260, height: 260 },
-          aspectRatio: 1.0,
-          videoConstraints: {
-            facingMode: { exact: "environment" }  // force back camera
-          },
-          rememberLastUsedCamera: true
-        };
-
-        currentScanner.start(
-          config.videoConstraints || { facingMode: "environment" },
-          config,
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 20, qrbox: 250 },
           (decodedText) => {
             document.getElementById(activeField).value = decodedText.trim();
-            showStatus(`Success! Scanned:\n${decodedText}`, 'success');
+            showStatus(`Scanned: ${decodedText}`, 'success');
             stopScanner();
-          },
-          () => {} // silent scan error
-        ).catch(err => {
-          console.error("[Scanner Error]", err.name || err, err.message || err);
-          let msg = "Camera failed to start:\n" + (err.message || err || "Unknown error");
-          if (err.name === "NotAllowedError") {
-            msg += "\n\nPermission denied → reset in browser settings → reload in private tab.";
-          } else if (err.name === "NotReadableError") {
-            msg += "\n\nCamera busy / in use → close other apps → retry.";
-          } else if (err.name === "OverconstrainedError") {
-            msg += "\n\nDevice cannot satisfy back-camera request → try 'Take Photo' fallback.";
           }
-          showStatus(msg, 'error');
-          stopScanner();
-        });
-      }, 600); // increased delay for mobile init
+        );
+      } catch (err) {
+        console.error("Scanner start failed:", err);
+        showStatus("Camera error: " + (err.message || "Permission / device issue"), 'error');
+        stopScanner();
+      }
     }
 
     function stopScanner() {
-      if (currentScanner) {
-        currentScanner.stop().catch(() => {});
-        currentScanner.clear();
-        currentScanner = null;
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(() => {});
       }
       scannerContainer.style.display = 'none';
-      document.querySelectorAll('.scan-row button').forEach(b => b.classList.remove('scanning'));
       activeField = null;
-    }
-
-    function triggerFileScan(fieldId) {
-      activeField = fieldId;
-      document.getElementById('barcodeFile').click();
-    }
-
-    function decodeFromFile(input) {
-      if (!input.files?.length) return;
-      showStatus("Reading barcode from photo...", 'warning');
-      const file = input.files[0];
-      const tempScanner = new Html5Qrcode("dummy");
-
-      tempScanner.scanFile(file, true)
-        .then(text => {
-          document.getElementById(activeField).value = text.trim();
-          showStatus(`Photo decoded:\n${text}`, 'success');
-        })
-        .catch(err => {
-          console.error("File scan error:", err);
-          showStatus("Failed to read from photo.\nTry clearer/lighter image.", 'error');
-        })
-        .finally(() => input.value = "");
     }
 
     function previewImage(input, previewId) {
       if (!input.files?.[0]) return;
       const reader = new FileReader();
       reader.onload = e => {
-        const img = document.getElementById(previewId);
-        img.src = e.target.result;
-        img.style.display = 'block';
+        document.getElementById(previewId).src = e.target.result;
+        document.getElementById(previewId).style.display = 'block';
       };
       reader.readAsDataURL(input.files[0]);
     }
@@ -346,7 +178,7 @@
       };
 
       if (!data.inner || !data.outer) {
-        showStatus("Both Inner and Outer barcodes required.", 'error');
+        showStatus("Inner and Outer barcodes required.", 'error');
         btn.disabled = false;
         btn.textContent = "SUBMIT PACKING DATA";
         return;
@@ -362,24 +194,15 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
         });
-        showStatus("Saved successfully!", 'success');
-        setTimeout(() => location.reload(), 2500);
+        showStatus("Saved!", 'success');
+        setTimeout(() => location.reload(), 2000);
       } catch (err) {
-        showStatus("Submit error:\n" + err.message, 'error');
+        showStatus("Error: " + err.message, 'error');
       } finally {
         btn.disabled = false;
         btn.textContent = "SUBMIT PACKING DATA";
       }
     }
-
-    document.addEventListener('click', e => {
-      if (scannerContainer.style.display === 'block' &&
-          !scannerContainer.contains(e.target) &&
-          !e.target.closest('.scan-row button')) {
-        stopScanner();
-      }
-    });
   </script>
-
 </body>
 </html>
