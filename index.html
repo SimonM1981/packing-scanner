@@ -275,18 +275,20 @@
       const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZUjFJDh3r7XyK977Iwnj4rt8a4QMexxICmXn0W9Nj7bMt150DigfHvgHEwxYW70Hg/exec";
 
       try {
-        await fetch(SCRIPT_URL, {
+        const response = await fetch(SCRIPT_URL, {
           method: "POST",
           mode: "no-cors",
           redirect: "follow",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
         });
-        showStatus("Data & photos saved!", 'success');
-        setTimeout(() => location.reload(), 2500);
+
+        // Since mode is no-cors, we can't read response, but if no network error → assume success
+        showStatus("Submission sent! Check sheet & Drive.", 'success');
+        setTimeout(() => location.reload(), 3000);
       } catch (err) {
-        showStatus("Error: " + err.message, 'error');
-        console.error(err);
+        showStatus("Network or submission error: " + err.message, 'error');
+        console.error("Fetch failed:", err);
       } finally {
         btn.disabled = false;
         btn.textContent = "SUBMIT PACKING DATA";
